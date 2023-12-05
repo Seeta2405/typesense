@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Typesense InstantSearch.js Demo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="shortcut icon" href="./favicon.png">
+    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css">
+    
+
+</head>
+
+<body>
+<header class="header">
+    <h1 class="header-title">
+        <a href="/">Instant Search Demo</a>
+    </h1>
+    <p class="header-subtitle">
+        using
+        <a href="https://github.com/algolia/instantsearch.js">
+            Typesense + InstantSearch.js
+        </a>
+    </p>
+</header>
+
+<div class="container">
+
+    <div class="search-panel">
+            <div class="search-panel__results">
+                <!-- <div id="sort-search-filters" ></div> -->
+            <div id="searchbox"></div>
+            <div class = " Search-Container">
+                <div class="refinements-container" >
+                    <strong>Language </strong> 
+                    <div id="refinement"></div> 
+                    <strong>Content </strong> 
+                    <div id="refinement2"></div> 
+                    <strong>Channel </strong> 
+                    <div id="refinement1"></div>
+                </div>
+                <div id="hits"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pagination"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4.44.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/typesense-instantsearch-adapter@2/dist/typesense-instantsearch-adapter.min.js"></script>
+
+<script>
+    const typesenseInstantsearchAdapter = new TypesenseInstantSearchAdapter({
+        server: {
+            apiKey: 'xyz', 
+            nodes: [
+                {
+                    host: 'localhost',
+                    port: '8108',
+                    protocol: 'http',
+                },
+            ],
+        },
+        // The following parameters are directly passed to Typesense's search API endpoint.
+        //  So you can pass any parameters supported by the search endpoint below.
+        //  queryBy is required.
+        //  filterBy is managed and overridden by InstantSearch.js. To set it, you want to use one of the filter widgets like refinementList or use the `configure` widget.
+        additionalSearchParameters: {
+            queryBy: 'name,_id,channel',
+        },
+    });
+    const searchClient = typesenseInstantsearchAdapter.searchClient;
+
+    const search = instantsearch({
+        searchClient,
+        indexName: 'content',
+    });
+
+    search.addWidgets([
+        instantsearch.widgets.searchBox({
+            container: '#searchbox',
+        }),
+        instantsearch.widgets.configure({
+            hitsPerPage: 20,
+        }),
+        instantsearch.widgets.hits({
+            container: '#hits',
+            templates: {
+                item(item) {
+                    let {details = ''} = item
+                    let imageUrl = details.split('posterImage')[1].split(']}')[0]
+                                          .split("'imageUrl': [")[1]
+                                          .replace("'","")
+                                          .replace("'","");
+                    let pub_date = details.split('publishedAt')[1]
+                                          .split('},')[0]
+                                          .split("': {'$date':")[1]
+                                          .replace("'","")
+                                          .replace("'","")
+                    return `
+                        <div>
+                            <div>
+                            <img src="${imageUrl}" alt="${item.name}" height="100" />
+                            <div class="hit-authors">
+                          ${item._highlightResult._id.value}
+                          </div>          
+                          <div class="hit-authors">
+                          ${item._highlightResult.name.value}
+                          </div>
+                          <div class="date-div" > Published Date:${pub_date}</div>
+                        </div>
+                      `;
+                },
+            },
+        }),
+        instantsearch.widgets.pagination({
+            container: '#pagination',
+        }),
+
+        instantsearch.widgets.refinementList({
+        container: '#refinement',
+        attribute: 'language',
+        }),
+        instantsearch.widgets.refinementList({
+        container: '#refinement1',
+        attribute: 'channel',
+        }),
+        instantsearch.widgets.refinementList({
+        container: '#refinement2',
+        attribute: 'content',
+        }),
+        // instantsearch.widgets.sortBy({
+        //     container:'sort-search-filters',
+        //     items: [
+        //         {label:  'Default', value: 'content'},
+        //         {label:  'Published Date', value: 'content/sort/Published Date(asce'}
+
+        //     ]
+
+        // }),
+  
+    ]);
+
+    search.start();
+</script>
+</body>
+</html>
+
+
